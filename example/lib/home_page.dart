@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:async';
-import 'dart:developer';
+import 'dart:convert';
 import 'dart:html';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -33,6 +33,8 @@ class _HomePageState extends State<HomePage> {
     _port = port;
 
     _startReceiving(port);
+
+    _logInfo('Port opened. ProductId: ${port.getInfo().usbProductId}');
 
     setState(() {});
   }
@@ -70,16 +72,16 @@ class _HomePageState extends State<HomePage> {
         setState(() {});
 
         if (result.done) {
-          log('Reader done.');
+          _logInfo('Reader done.');
           break;
         }
       } catch (e) {
-        log('Error reading from port: $e');
+        _logError('Error reading from port: $e');
         break;
       }
     }
 
-    log('Reader cancelled.');
+    _logInfo('Reader cancelled.');
 
     setState(() {});
   }
@@ -93,6 +95,19 @@ class _HomePageState extends State<HomePage> {
     _port = null;
 
     setState(() {});
+  }
+
+  void _log(String message) {
+    var bytes = utf8.encode(message);
+    _received.add(Uint8List.fromList(bytes));
+  }
+
+  void _logInfo(String message) {
+    _log('[INFO] $message');
+  }
+
+  void _logError(String message) {
+    _log('[ERROR] $message');
   }
 
   @override
@@ -130,7 +145,8 @@ class _HomePageState extends State<HomePage> {
                     ? ListView(
                         padding: const EdgeInsets.all(4),
                         children: _received.map((e) {
-                          final text = String.fromCharCodes(e);
+                          final text = utf8.decode(e, allowMalformed: true);
+
                           return Padding(
                             padding: const EdgeInsets.all(4.0),
                             child: Text(text),
