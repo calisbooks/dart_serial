@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:html';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -20,6 +21,8 @@ class _HomePageState extends State<HomePage> {
   final _received = <Uint8List>[];
 
   final _controller1 = TextEditingController();
+
+  ReadableStreamReader? _reader;
 
   Future<void> _openPort() async {
     await _port?.close();
@@ -57,12 +60,39 @@ class _HomePageState extends State<HomePage> {
   Future<void> _startReceiving(SerialPort port) async {
     final reader = port.readable.reader;
 
-    while (true) {
-      final result = await reader.read();
-      _received.add(result.value);
+    _reader = reader;
 
-      setState(() {});
+    while (_reader != null) {
+      try {
+        final result = await reader.read();
+        _received.add(result.value);
+
+        setState(() {});
+
+        if (result.done) {
+          log('Reader done.');
+          break;
+        }
+      } catch (e) {
+        log('Error reading from port: $e');
+        break;
+      }
     }
+
+    log('Reader cancelled.');
+
+    setState(() {});
+  }
+
+  _closePort() async {
+    await _reader?.cancel();
+    _reader?.releaseLock();
+    _reader = null;
+
+    await _port?.close();
+    _port = null;
+
+    setState(() {});
   }
 
   @override
@@ -79,14 +109,7 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Open Serial Port',
           ),
           IconButton(
-            onPressed: _port == null
-                ? null
-                : () async {
-                    await _port?.close();
-                    _port = null;
-
-                    setState(() {});
-                  },
+            onPressed: _port == null ? null : _closePort,
             icon: Icon(Icons.close),
             tooltip: 'Close Serial Port',
           ),
