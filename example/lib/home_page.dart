@@ -3,8 +3,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:html';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 
 import 'package:serial/serial.dart';
@@ -17,10 +17,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const int _defaultBaudRate = 9600;
+
   SerialPort? _port;
   final _received = <Uint8List>[];
 
   final _controller1 = TextEditingController();
+
+  final _baudController = TextEditingController(text: '9600');
 
   ReadableStreamReader? _reader;
 
@@ -28,13 +32,23 @@ class _HomePageState extends State<HomePage> {
     await _port?.close();
 
     final port = await window.navigator.serial.requestPort();
-    await port.open(baudRate: 9600);
+
+    var baudRate = int.tryParse(_baudController.text);
+
+    if (baudRate == null) {
+      _logError('Invalid baud rate. Using default: $_defaultBaudRate');
+      baudRate = _defaultBaudRate;
+    }
+
+    await port.open(baudRate: baudRate);
 
     _port = port;
 
     _startReceiving(port);
 
-    _logInfo('Port opened. ProductId: ${port.getInfo().usbProductId}');
+    final info = port.getInfo();
+    _logInfo(
+        'Port opened. ProductId: ${info.usbProductId}, VendorId: ${info.usbVendorId}');
 
     setState(() {});
   }
@@ -133,6 +147,19 @@ class _HomePageState extends State<HomePage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextFormField(
+              controller: _baudController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              decoration: InputDecoration(
+                labelText: 'Baud Rate',
+              ),
+            ),
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
