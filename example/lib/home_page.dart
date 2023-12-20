@@ -3,6 +3,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:html';
+import 'dart:js_interop';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
@@ -31,7 +33,12 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openPort() async {
     await _port?.close();
 
-    final port = await window.navigator.serial.requestPort();
+    final ports = await window.navigator.serial.getPorts();
+
+    final filteredPort = ports.firstWhereOrNull((x) =>
+        x.getInfo().usbProductId == 24577 && x.getInfo().usbVendorId == 1027);
+
+    final port = filteredPort ?? await window.navigator.serial.requestPort();
 
     var baudRate = int.tryParse(_baudController.text);
 

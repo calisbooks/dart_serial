@@ -32,6 +32,7 @@ dependencies:
   serial:
     path: ../
   gap: any
+  collection: any
 
 dev_dependencies:
   flutter_test:
