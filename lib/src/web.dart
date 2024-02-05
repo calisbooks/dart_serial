@@ -14,18 +14,36 @@ extension SerialExtensions on Serial {
   external Object _getPorts();
 
   @JS('requestPort')
-  external Object _requestPort();
+  external Object _requestPort(_SerialPortRequestOptions options);
 
   Future<List<SerialPort>> getPorts() async {
-      final dynamic ports = await promiseToFuture(_getPorts());
-      if (ports is List) {
-          return List<SerialPort>.from(ports);
-      }
-      return [];
+    final dynamic ports = await promiseToFuture(_getPorts());
+    if (ports is List) {
+      return List<SerialPort>.from(ports);
+    }
+    return [];
   }
 
-  Future<SerialPort> requestPort() =>
-      promiseToFuture<SerialPort>(_requestPort());
+  Future<SerialPort> requestPort({
+    int? vendorId,
+    int? usbProductId,
+  }) {
+    final options = _SerialPortRequestOptions();
+
+    if (vendorId != null) {
+      final filter = _SerialPortFilter(
+        usbVendorId: vendorId,
+      );
+
+      if (usbProductId != null) {
+        filter.usbProductId = usbProductId;
+      }
+
+      options.filters = [filter];
+    }
+
+    return promiseToFuture<SerialPort>(_requestPort(options));
+  }
 }
 
 @JS()
